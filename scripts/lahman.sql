@@ -40,10 +40,58 @@ WHERE playerid IN
 
 
 -- 3. Find all players in the database who played at Vanderbilt University. Create a list showing each player’s first and last names as well as the total salary they earned in the major leagues. Sort this list in descending order by the total salary earned. Which Vanderbilt player earned the most money in the majors?
+
+SELECT 
+	CONCAT(namefirst, ' ', namelast),
+	SUM(salary) as total_salary
+FROM people as p
+INNER JOIN salaries as s
+USING (playerid)
+WHERE playerid IN
+	(SELECT distinct playerid
+	FROM collegeplaying
+	WHERE schoolid IN
+		(SELECT schoolid
+		FROM schools
+		WHERE schoolname LIKE '%Vanderbilt%'))
+GROUP BY CONCAT(namefirst, ' ', namelast)
+ORDER by SUM(salary) DESC
+
+-- This gives me a list of 15 players, where the where-subqueries give me 24. Assuming that 9 players didn't make the transition to the major leagues. 
+-- No, they all appear under 'people'
+-- 'people' lists all players; 'salaries' tracks players gone pro 
 	
+--VALIDATION--VALIDATION--VALIDATION--VALIDATION--VALIDATION
+
+-- SELECT playerid
+-- FROM people
+-- WHERE playerid NOT IN
+-- 	(SELECT DISTINCT
+-- 		playerid
+-- 	-- 	SUM(salary)
+-- 	FROM salaries as s
+-- 	WHERE playerid IN
+-- 		(SELECT distinct playerid
+-- 		FROM collegeplaying
+-- 		WHERE schoolid IN
+-- 			(SELECT schoolid
+-- 			FROM schools
+-- 			WHERE schoolname LIKE '%Vanderbilt%'))
+-- 	GROUP BY playerid)
+-- AND playerid IN
+-- 	(SELECT distinct playerid
+-- 		FROM collegeplaying
+-- 		WHERE schoolid IN
+-- 			(SELECT schoolid
+-- 			FROM schools
+-- 			WHERE schoolname LIKE '%Vanderbilt%'))
+
+--VALIDATION--VALIDATION--VALIDATION--VALIDATION--VALIDATION
 
 -- 4. Using the fielding table, group players into three groups based on their position: label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
-   
+
+
+
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
    
 
