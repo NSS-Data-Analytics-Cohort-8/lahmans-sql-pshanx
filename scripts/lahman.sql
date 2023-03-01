@@ -17,21 +17,27 @@ FROM appearances
   
 -- 2. Find the name and height of the shortest player in the database. How many games did he play in? What is the name of the team for which he played?
 
-SELECT
-	playerid,
-	CONCAT(namegiven, ' ', namelast),
-	MIN(height)
-FROM people
-GROUP BY
-	playerid,
-	CONCAT(namegiven, ' ', namelast),
-	height
-ORDER BY height
-LIMIT 1
 
-SELECT * 
-FROM appearances
-WHERE 
+SELECT 
+	g_all as games_played,
+	CONCAT(namegiven, ' ', namelast) as full_name,
+	height,
+	t.name as team_name
+FROM appearances as a
+	INNER JOIN people as p
+		USING (playerid)
+	INNER JOIN teams as t
+		ON a.teamid = t.teamid
+		AND a.yearid = t.yearid
+WHERE playerid IN
+		(SELECT
+			playerid
+		FROM people
+		WHERE height IN
+			(SELECT MIN(height)
+			FROM people));
+
+
 
 -- 3. Find all players in the database who played at Vanderbilt University. Create a list showing each player’s first and last names as well as the total salary they earned in the major leagues. Sort this list in descending order by the total salary earned. Which Vanderbilt player earned the most money in the majors?
 	
