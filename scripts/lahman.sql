@@ -90,13 +90,109 @@ ORDER by SUM(salary) DESC
 
 -- 4. Using the fielding table, group players into three groups based on their position: label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
 
+SELECT DISTINCT
+	positions,
+	SUM(total_putouts)
+FROM
+	(SELECT 
+		CASE WHEN pos = 'P' OR pos = 'C' THEN 'Battery'
+			WHEN pos = 'OF' THEN 'Outfield'
+			ELSE 'Infield' END as positions,
+		SUM(po) as total_putouts
+	FROM fielding
+	WHERE yearid = 2016
+	GROUP BY pos) as sub
+GROUP BY positions
+
+
 
 
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
-   
+
+WITH strike AS
+(
+	SELECT
+		concat(left(cast(year as varchar(4)), 3), '0s') as decade,
+		ROUND(SUM(strikeo)/SUM(games),2) as avg_so
+	FROM
+		(SELECT
+			SUM(so) as strikeo,
+			SUM(g) as games,
+			yearid as year
+		FROM pitching
+		WHERE yearid >=1920
+		GROUP BY yearid
+		ORDER BY yearid) AS sub
+	GROUP BY decade
+)
+,
+homer AS
+(
+	SELECT
+		concat(left(cast(year as varchar(4)), 3), '0s') as decade,
+		ROUND(SUM(homer)/SUM(games),2) as avg_homer
+	FROM
+		(SELECT
+			SUM(hr) as homer,
+			SUM(g) as games,
+			yearid as year
+		FROM batting
+		WHERE yearid >=1920
+		GROUP BY yearid
+		ORDER BY yearid) as sub2
+	GROUP BY decade
+)
+SELECT 
+	strike.decade,
+	avg_so,
+	avg_homer
+FROM strike 
+INNER JOIN homer
+USING (decade);
+
+
+SELECT * FROM pitching
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
-	
+
+WITH ano as
+(SELECT 
+	DISTINCT playerid,
+-- 	teamid,
+	SUM(sb) as scot_free,
+	SUM(cs) as caught_dirty
+FROM batting
+WHERE yearid = 2016
+-- 	AND sb+cs>=20
+GROUP BY playerid
+-- ,teamid
+HAVING SUM(sb)+SUM(cs)>=20
+ORDER BY playerid)
+,
+reg as
+(SELECT 
+	DISTINCT playerid,
+	teamid,
+	SUM(sb) as scot_free,
+	SUM(cs) as caught_dirty
+FROM batting
+WHERE yearid = 2016
+-- 	AND sb+cs>=20
+GROUP BY playerid
+,teamid
+HAVING SUM(sb)+SUM(cs)>=20
+ORDER BY playerid)
+
+SELECT 
+	ano.playerid,
+	reg.playerid,
+	reg.teamid,
+	reg.scot_free,
+	reg.caught_dirty
+FROM ano
+FULL JOIN reg
+ON reg.scot_free=ano.scot_free AND reg.caught_dirty=ano.caught_dirty
+ORDER BY teamid
 
 -- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 
