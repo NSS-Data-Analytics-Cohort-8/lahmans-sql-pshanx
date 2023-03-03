@@ -151,48 +151,25 @@ INNER JOIN homer
 USING (decade);
 
 
-SELECT * FROM pitching
-
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
 
-WITH ano as
-(SELECT 
-	DISTINCT playerid,
--- 	teamid,
-	SUM(sb) as scot_free,
-	SUM(cs) as caught_dirty
-FROM batting
-WHERE yearid = 2016
--- 	AND sb+cs>=20
-GROUP BY playerid
--- ,teamid
-HAVING SUM(sb)+SUM(cs)>=20
-ORDER BY playerid)
-,
-reg as
-(SELECT 
-	DISTINCT playerid,
-	teamid,
-	SUM(sb) as scot_free,
-	SUM(cs) as caught_dirty
-FROM batting
-WHERE yearid = 2016
--- 	AND sb+cs>=20
-GROUP BY playerid
-,teamid
-HAVING SUM(sb)+SUM(cs)>=20
-ORDER BY playerid)
+SELECT
+	CONCAT(namefirst, ' ', namelast) as player_name,
+	ROUND(scot_free/(scot_free+caught_dirty),2) as pct_sf
+FROM
+	(SELECT 
+		DISTINCT playerid,
+		CAST(SUM(sb) as numeric) as scot_free,
+		CAST(SUM(cs) as numeric) as caught_dirty
+	FROM batting
+	WHERE yearid = 2016
+	GROUP BY playerid
+	HAVING SUM(sb)+SUM(cs)>=20
+	ORDER BY playerid) as sub
+LEFT JOIN people
+USING (playerid)
+ORDER BY pct_sf DESC
 
-SELECT 
-	ano.playerid,
-	reg.playerid,
-	reg.teamid,
-	reg.scot_free,
-	reg.caught_dirty
-FROM ano
-FULL JOIN reg
-ON reg.scot_free=ano.scot_free AND reg.caught_dirty=ano.caught_dirty
-ORDER BY teamid
 
 -- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 
