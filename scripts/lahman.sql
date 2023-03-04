@@ -198,10 +198,17 @@ EXCEPT
 SELECT *
 FROM teams
 WHERE yearid = 1981) 
+,
+ws_pct AS
+(SELECT 
+CAST(COUNT(DISTINCT yearid) as numeric) as year_count
+FROM strike)
 
 SELECT
 	name,
 	yearid
+-- 	COUNT(yearid),
+-- 	ROUND(CAST(COUNT(yearid) as numeric)/(SELECT year_count FROM ws_pct), 2) as pct
 FROM 
 	(SELECT 
 		name,
