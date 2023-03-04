@@ -246,7 +246,8 @@ LIMIT 5
 -- 9. Which managers have won the TSN Manager of the Year award in both the National League (NL) and the American League (AL)? Give their full name and the teams that they were managing when they won the award.
 
 WITH losdos as
-(SELECT playerid
+(
+SELECT playerid
 FROM awardsmanagers
 WHERE awardid LIKE 'TSN%'
 	AND lgid = 'AL'
@@ -254,27 +255,63 @@ INTERSECT
 SELECT playerid
 FROM awardsmanagers
 WHERE awardid LIKE 'TSN%'
-	AND lgid = 'NL')
+	AND lgid = 'NL'
+)
 -- ,
 -- tsn_year as
 -- (
--- SELECT yearid
+-- SELECT
+-- 	playerid,
+-- 	yearid
 --  FROM awardsmanagers
 --  WHERE playerid IN
 --  			(SELECT playerid
--- 			FROM losdos)
+-- 			FROM losdos
+-- 			WHERE
 -- )
 	
-SELECT DISTINCT
+-- SELECT DISTINCT
+-- 	CONCAT(namegiven, ' ', namelast) as manager_name,
+-- 	t.name
+-- FROM losdos as ld
+-- LEFT JOIN tsn_year as ty
+-- 	ON ld.playerid = ty.playerid
+-- LEFT JOIN people as p
+-- 	ON ld.playerid = p.playerid
+-- LEFT JOIN managers as m
+-- 	ON ty.yearid = m.yearid
+-- LEFT JOIN teams as t
+-- 	ON m.teamid = t.teamid
+
+-- SELECT *
+-- FROM  
+-- WHERE playerid = 'leylaji99'
+-- 	OR playerid = 'johnsda02'
+	
+
+
+SELECT 	
 	CONCAT(namegiven, ' ', namelast) as manager_name,
 	t.name
 FROM people as p
-INNER JOIN losdos as ld
-USING (playerid)
-INNER JOIN managers as m
-USING (playerid)
-INNER JOIN teams as t
-USING (teamid)
+	INNER JOIN awardsmanagers as a
+	USING (playerid)
+	INNER JOIN salaries as s
+	USING (playerid)
+	INNER JOIN teams as t
+	USING (teamid)
+WHERE playerid IN 
+				(SELECT playerid
+				FROM awardsmanagers
+				WHERE awardid LIKE 'TSN%'
+					AND lgid = 'AL'
+				INTERSECT
+				SELECT playerid
+				FROM awardsmanagers
+				WHERE awardid LIKE 'TSN%'
+					AND lgid = 'NL')
+	AND a.awardid LIKE 'TSN%'
+	
 
 -- 10. Find all players who hit their career highest number of home runs in 2016. Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. Report the players' first and last names and the number of home runs they hit in 2016.
 
