@@ -295,11 +295,28 @@ WHERE yearid =2016
 	AND batting.hr = mox.max_hr
 	AND hr > 0
 
-SELECT 
+
+
 
 -- **Open-ended questions**
 
 -- 11. Is there any correlation between number of wins and team salary? Use data from 2000 and later to answer this question. As you do this analysis, keep in mind that salaries across the whole league tend to increase together, so you may want to look on a year-by-year basis.
+
+
+SELECT 
+	s.yearid,
+	t.name,
+	w,
+	sum(s.salary::numeric)::money as team_salary,
+	ROUND((sum(s.salary::numeric)/w),2)::money as per_win,
+	RANK() OVER (PARTITION BY s.yearid ORDER BY w DESC) as annual_rank
+FROM teams as t
+INNER JOIN salaries as s
+USING (teamid, yearid)
+WHERE s.yearid >=2000
+GROUP BY s.yearid, t.name, w
+ORDER BY yearid, annual_rank
+
 
 -- 12. In this question, you will explore the connection between number of wins and attendance.
 --     <ol type="a">
