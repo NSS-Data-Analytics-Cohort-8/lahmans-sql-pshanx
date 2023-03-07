@@ -273,19 +273,29 @@ USING (yearid, playerid)
 
 -- 10. Find all players who hit their career highest number of home runs in 2016. Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. Report the players' first and last names and the number of home runs they hit in 2016.
 
+WITH mox AS
+(
 SELECT 
 	playerid,
 	MAX(MAX(hr)) OVER (PARTITION BY playerid) as max_hr
 FROM batting
 GROUP BY playerid
-
-SELECT DISTINCT
+HAVING COUNT(DISTINCT yearid) >=10
+)
+SELECT
+	CONCAT (namegiven, ' ', namelast),
 	playerid,
-	COUNT(DISTINCT yearid),
-	COUNT(DISTINCT teamid)
-FROM batting
-GROUP BY playerid
-HAVING COUNT(distinct yearid) =10
+	hr
+FROM batting 
+INNER JOIN mox
+	USING (playerid)
+INNER JOIN people
+	USING (playerid)
+WHERE yearid =2016
+	AND batting.hr = mox.max_hr
+	AND hr > 0
+
+SELECT 
 
 -- **Open-ended questions**
 
