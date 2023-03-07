@@ -57,36 +57,7 @@ WHERE playerid IN
 GROUP BY CONCAT(namefirst, ' ', namelast)
 ORDER by SUM(salary) DESC
 
--- This gives me a list of 15 players, where the where-subqueries give me 24. Assuming that 9 players didn't make the transition to the major leagues. 
--- No, they all appear under 'people'
--- 'people' lists all players; 'salaries' tracks players gone pro 
-	
---VALIDATION--VALIDATION--VALIDATION--VALIDATION--VALIDATION
 
--- SELECT playerid
--- FROM people
--- WHERE playerid NOT IN
--- 	(SELECT DISTINCT
--- 		playerid
--- 	-- 	SUM(salary)
--- 	FROM salaries as s
--- 	WHERE playerid IN
--- 		(SELECT distinct playerid
--- 		FROM collegeplaying
--- 		WHERE schoolid IN
--- 			(SELECT schoolid
--- 			FROM schools
--- 			WHERE schoolname LIKE '%Vanderbilt%'))
--- 	GROUP BY playerid)
--- AND playerid IN
--- 	(SELECT distinct playerid
--- 		FROM collegeplaying
--- 		WHERE schoolid IN
--- 			(SELECT schoolid
--- 			FROM schools
--- 			WHERE schoolname LIKE '%Vanderbilt%'))
-
---VALIDATION--VALIDATION--VALIDATION--VALIDATION--VALIDATION
 
 -- 4. Using the fielding table, group players into three groups based on their position: label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
 
@@ -108,48 +79,47 @@ GROUP BY positions
 
 
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
-
 WITH strike AS
 (
-	SELECT
-		concat(left(cast(year as varchar(4)), 3), '0s') as decade,
-		ROUND(SUM(strikeo)/SUM(games),2) as avg_so
-	FROM
-		(SELECT
-			SUM(so) as strikeo,
-			SUM(g) as games,
-			yearid as year
-		FROM pitching
-		WHERE yearid >=1920
-		GROUP BY yearid
-		ORDER BY yearid) AS sub
-	GROUP BY decade
+SELECT
+	LEFT(yearid::varchar(4),3) as decade,
+	SUM(so)::numeric as stri
+FROM pitching
+WHERE yearid >=1920
+GROUP BY decade
+ORDER BY decade
 )
 ,
 homer AS
 (
-	SELECT
-		concat(left(cast(year as varchar(4)), 3), '0s') as decade,
-		ROUND(SUM(homer)/SUM(games),2) as avg_homer
-	FROM
-		(SELECT
-			SUM(hr) as homer,
-			SUM(g) as games,
-			yearid as year
-		FROM batting
-		WHERE yearid >=1920
-		GROUP BY yearid
-		ORDER BY yearid) as sub2
-	GROUP BY decade
+SELECT
+	LEFT(yearid::varchar(4),3) as decade,
+	SUM(hr)::numeric as hom
+FROM batting
+WHERE yearid >=1920
+GROUP BY decade
+ORDER BY decade
+)
+,
+home as
+(
+SELECT 
+	LEFT(yearid::varchar(4),3) as decade,
+	SUM(ghome)::numeric as gho
+FROM teams
+WHERE yearid>=1920
+GROUP BY decade
+ORDER BY decade
 )
 SELECT 
 	strike.decade,
-	avg_so,
-	avg_homer
-FROM strike 
+	ROUND(strike.stri/home.gho ,2) as sog_per,
+	ROUND(homer.hom/home.gho ,2) as hrg_per
+FROM strike
+INNER JOIN home
+USING (decade)
 INNER JOIN homer
-USING (decade);
-
+USING (decade)
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
 
