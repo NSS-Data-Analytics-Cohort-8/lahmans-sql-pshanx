@@ -80,37 +80,31 @@ GROUP BY positions
 
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
 WITH strike AS
-(
-SELECT
-	LEFT(yearid::varchar(4),3) as decade,
-	SUM(so)::numeric as stri
-FROM pitching
-WHERE yearid >=1920
-GROUP BY decade
-ORDER BY decade
-)
+		(SELECT
+			LEFT(yearid::varchar(4),3) as decade,
+			SUM(so)::numeric as stri
+		FROM pitching
+		WHERE yearid >=1920
+		GROUP BY decade
+		ORDER BY decade)
 ,
 homer AS
-(
-SELECT
-	LEFT(yearid::varchar(4),3) as decade,
-	SUM(hr)::numeric as hom
-FROM batting
-WHERE yearid >=1920
-GROUP BY decade
-ORDER BY decade
-)
+		(SELECT
+			LEFT(yearid::varchar(4),3) as decade,
+			SUM(hr)::numeric as hom
+		FROM batting
+		WHERE yearid >=1920
+		GROUP BY decade
+		ORDER BY decade)
 ,
 home as
-(
-SELECT 
-	LEFT(yearid::varchar(4),3) as decade,
-	SUM(ghome)::numeric as gho
-FROM teams
-WHERE yearid>=1920
-GROUP BY decade
-ORDER BY decade
-)
+		(SELECT 
+			LEFT(yearid::varchar(4),3) as decade,
+			SUM(ghome)::numeric as gho
+		FROM teams
+		WHERE yearid>=1920
+		GROUP BY decade
+		ORDER BY decade)
 SELECT 
 	strike.decade,
 	ROUND(strike.stri/home.gho ,2) as sog_per,
@@ -143,36 +137,19 @@ ORDER BY pct_sf DESC
 
 -- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 
--- SELECT 
--- 	yearid,
--- 	name,
--- 	w
--- FROM teams
--- WHERE yearid >= 1970 AND wswin = 'N'
--- ORDER by w DESC;
-
--- SELECT
--- 	yearid,
--- 	name,
--- 	w
--- FROM teams
--- WHERE yearid >= 1970 AND wswin = 'Y'
--- ORDER by w ASC;
-
 
 WITH strike AS
-(SELECT *
-FROM teams
-WHERE yearid >= 1970 
-EXCEPT
-SELECT *
-FROM teams
-WHERE yearid = 1981) 
+		(SELECT *
+		FROM teams
+		WHERE yearid >= 1970 
+		EXCEPT
+		SELECT *
+		FROM teams
+		WHERE yearid = 1981) 
 ,
 ws_pct AS
-(SELECT 
-CAST(COUNT(DISTINCT yearid) as numeric) as year_count
-FROM strike)
+		(SELECT COUNT(DISTINCT yearid::numeric) as year_count
+		FROM strike)
 
 SELECT
 	name,
@@ -264,7 +241,7 @@ INNER JOIN people
 WHERE yearid =2016
 	AND batting.hr = mox.max_hr
 	AND hr > 0
-
+ORDER BY hr DESC
 
 
 
@@ -297,4 +274,120 @@ ORDER BY yearid, annual_rank
 
 -- 13. It is thought that since left-handed pitchers are more rare, causing batters to face them less often, that they are more effective. Investigate this claim and present evidence to either support or dispute this claim. First, determine just how rare left-handed pitchers are compared with right-handed pitchers. Are left-handed pitchers more likely to win the Cy Young Award? Are they more likely to make it into the hall of fame?
 
-  
+WITH righty AS
+		(SELECT 
+			LEFT(yearid::varchar(4),3) as decade,
+			SUM(so) as right_so,
+			COUNT(playerid)::numeric as righties,
+			SUM(COUNT(playerid)) OVER () as total_righties
+		FROM pitching
+		WHERE playerid IN
+					(SELECT DISTINCT 
+						playerid as righty
+					FROM people
+					INNER JOIN fielding
+					USING (playerid)
+					WHERE throws = 'R'
+						AND pos = 'P')
+		GROUP BY decade
+		ORDER BY decade)
+,
+lefty AS
+		(SELECT 
+			LEFT(yearid::varchar(4),3) as decade,
+			SUM(so) as left_so,
+			COUNT(playerid)::numeric as lefties,
+			SUM(COUNT(playerid)) OVER () as total_lefties
+		FROM pitching
+		WHERE playerid IN
+					(SELECT DISTINCT 
+						playerid as lefty
+					FROM people
+					INNER JOIN fielding
+					USING (playerid)
+					WHERE throws = 'L'
+						AND pos = 'P')
+		GROUP BY decade
+		ORDER BY decade)
+
+SELECT 
+	decade,
+	lefties,
+	righties,
+	ROUND(lefties/(lefties+righties),2) as pct_lefty,
+	ROUND(left_so/lefties ,2) as so_per_player_left,
+	ROUND(right_so/righties ,2) as so_per_player_right
+FROM lefty
+INNER JOIN righty
+USING (decade)
+ORDER BY decade
+
+
+WITH left_cy AS
+		(SELECT DISTINCT 
+		 	yearid,
+			playerid as lefty,
+			COUNT(awardid) as left_cys
+		FROM awardsplayers
+		WHERE awardid LIKE 'Cy%'
+			AND playerid IN 
+							(SELECT DISTINCT 
+								playerid as lefty
+							FROM people
+							INNER JOIN fielding
+							USING (playerid)
+							WHERE throws = 'L'
+								AND pos = 'P')
+		GROUP BY yearid, playerid)
+,
+right_cy AS
+		(SELECT DISTINCT 
+		 	yearid,
+			playerid as righty,
+			COUNT(awardid) as right_cys
+		FROM awardsplayers
+		WHERE awardid LIKE 'Cy%'
+			AND playerid IN 
+							(SELECT DISTINCT 
+								playerid as righty
+							FROM people
+							INNER JOIN fielding
+							USING (playerid)
+							WHERE throws = 'R'
+								AND pos = 'P')
+		GROUP BY yearid, playerid)
+
+SELECT 
+	COUNT(DISTINCT lefty),
+	COUNT(DISTINCT righty),
+	COUNT(DISTINCT lefty)::numeric/(COUNT(DISTINCT lefty)::numeric+COUNT(DISTINCT righty))::numeric as pct
+FROM left_cy
+FULL JOIN right_cy
+USING (yearid)
+
+
+SELECT 
+	playerid
+FROM halloffame
+	WHERE playerid IN 
+					(SELECT DISTINCT 
+						playerid as righty
+					FROM people
+					INNER JOIN fielding
+					USING (playerid)
+					WHERE throws = 'R'
+						AND pos = 'P')
+	AND inducted = 'Y'
+	
+SELECT 
+	playerid
+FROM halloffame
+	WHERE playerid IN 
+					(SELECT DISTINCT 
+						playerid as lefty
+					FROM people
+					INNER JOIN fielding
+					USING (playerid)
+					WHERE throws = 'L'
+						AND pos = 'P')
+	AND inducted = 'Y'
