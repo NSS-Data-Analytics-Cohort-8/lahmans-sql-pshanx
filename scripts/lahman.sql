@@ -274,6 +274,9 @@ ORDER BY yearid, annual_rank
 
 -- 13. It is thought that since left-handed pitchers are more rare, causing batters to face them less often, that they are more effective. Investigate this claim and present evidence to either support or dispute this claim. First, determine just how rare left-handed pitchers are compared with right-handed pitchers. Are left-handed pitchers more likely to win the Cy Young Award? Are they more likely to make it into the hall of fame?
 
+
+--RARITY n' OTHER SHIT--RARITY n' OTHER SHIT--RARITY n' OTHER SHIT--RARITY n' OTHER SHIT
+
 WITH righty AS
 		(SELECT 
 			LEFT(yearid::varchar(4),3) as decade,
@@ -322,6 +325,7 @@ INNER JOIN righty
 USING (decade)
 ORDER BY decade
 
+--CY YOUNG NONSENSE--CY YOUNG NONSENSE--CY YOUNG NONSENSE--CY YOUNG NONSENSE--CY YOUNG NONSENSE
 
 WITH left_cy AS
 		(SELECT DISTINCT 
@@ -365,29 +369,41 @@ FROM left_cy
 FULL JOIN right_cy
 USING (yearid)
 
+--HOF--HOF--HOF--HOF--HOF--HOF--HOF--HOF--HOF--HOF--HOF--HOF--HOF--HOF
 
+WITH fuck AS
+		(SELECT 
+			playerid,
+		 	yearid
+		FROM halloffame
+		WHERE playerid IN 
+						(SELECT DISTINCT 
+							playerid as righty
+						FROM people
+						INNER JOIN fielding
+						USING (playerid)
+						WHERE throws = 'R'
+							AND pos = 'P')
+		AND inducted = 'Y')
+,
+shit AS	
+		(SELECT 
+			playerid,
+		 	yearid
+		FROM halloffame
+		WHERE playerid IN 
+						(SELECT DISTINCT 
+							playerid as lefty
+						FROM people
+						INNER JOIN fielding
+						USING (playerid)
+						WHERE throws = 'L'
+							AND pos = 'P')
+		AND inducted = 'Y')
 SELECT 
-	playerid
-FROM halloffame
-	WHERE playerid IN 
-					(SELECT DISTINCT 
-						playerid as righty
-					FROM people
-					INNER JOIN fielding
-					USING (playerid)
-					WHERE throws = 'R'
-						AND pos = 'P')
-	AND inducted = 'Y'
-	
-SELECT 
-	playerid
-FROM halloffame
-	WHERE playerid IN 
-					(SELECT DISTINCT 
-						playerid as lefty
-					FROM people
-					INNER JOIN fielding
-					USING (playerid)
-					WHERE throws = 'L'
-						AND pos = 'P')
-	AND inducted = 'Y'
+	COUNT(DISTINCT fuck.playerid) as righty,
+	COUNT(DISTINCT shit.playerid) as lefty,
+	COUNT(DISTINCT shit.playerid)::numeric/(COUNT(DISTINCT shit.playerid)::numeric+COUNT(DISTINCT fuck.playerid))::numeric as pct
+FROM fuck
+FULL JOIN shit
+USING(yearid)
