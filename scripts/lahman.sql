@@ -30,12 +30,12 @@ FROM appearances as a
 		ON a.teamid = t.teamid
 		AND a.yearid = t.yearid
 WHERE playerid IN
-		(SELECT
-			playerid
-		FROM people
-		WHERE height IN
-			(SELECT MIN(height)
-			FROM people));
+				(SELECT
+					playerid
+				FROM people
+				WHERE height IN
+							(SELECT MIN(height)
+							FROM people));
 
 
 
@@ -48,12 +48,12 @@ FROM people as p
 INNER JOIN salaries as s
 USING (playerid)
 WHERE playerid IN
-	(SELECT distinct playerid
-	FROM collegeplaying
-	WHERE schoolid IN
-		(SELECT schoolid
-		FROM schools
-		WHERE schoolname LIKE '%Vanderbilt%'))
+			(SELECT distinct playerid
+			FROM collegeplaying
+			WHERE schoolid IN
+						(SELECT schoolid
+						FROM schools
+						WHERE schoolname LIKE '%Vanderbilt%'))
 GROUP BY CONCAT(namefirst, ' ', namelast)
 ORDER by SUM(salary) DESC
 
@@ -61,21 +61,14 @@ ORDER by SUM(salary) DESC
 
 -- 4. Using the fielding table, group players into three groups based on their position: label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
 
-SELECT DISTINCT
-	positions,
-	SUM(total_putouts)
-FROM
-	(SELECT 
-		CASE WHEN pos = 'P' OR pos = 'C' THEN 'Battery'
-			WHEN pos = 'OF' THEN 'Outfield'
-			ELSE 'Infield' END as positions,
-		SUM(po) as total_putouts
-	FROM fielding
-	WHERE yearid = 2016
-	GROUP BY pos) as sub
+SELECT 
+	CASE WHEN pos = 'P' OR pos = 'C' THEN 'Battery'
+		WHEN pos = 'OF' THEN 'Outfield'
+		ELSE 'Infield' END as positions,
+	SUM(po) as total_putouts
+FROM fielding
+WHERE yearid = 2016
 GROUP BY positions
-
-
 
 
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
@@ -115,6 +108,10 @@ USING (decade)
 INNER JOIN homer
 USING (decade)
 
+SELECT SUM(hr) as from_pitching,
+(SELECT SUM(hr) FROM batting) as from_batting
+FROM pitching
+
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
 
 SELECT
@@ -137,7 +134,6 @@ ORDER BY pct_sf DESC
 
 -- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 
-
 WITH strike AS
 		(SELECT *
 		FROM teams
@@ -146,16 +142,17 @@ WITH strike AS
 		SELECT *
 		FROM teams
 		WHERE yearid = 1981) 
+
 ,
 ws_pct AS
 		(SELECT COUNT(DISTINCT yearid::numeric) as year_count
 		FROM strike)
 
 SELECT
-	name,
-	yearid
--- 	COUNT(yearid),
--- 	ROUND(CAST(COUNT(yearid) as numeric)/(SELECT year_count FROM ws_pct), 2) as pct
+-- 	name,
+-- 	yearid
+	COUNT(yearid),
+	ROUND(CAST(COUNT(yearid) as numeric)/(SELECT year_count FROM ws_pct), 2) as pct
 FROM 
 	(SELECT 
 		name,
@@ -183,8 +180,8 @@ INNER JOIN parks as p
 	ON h.park = p.park
 WHERE h.year = 2016
 	AND h.games>10
--- ORDER BY avg_attendance DESC
-ORDER BY avg_attendance ASC
+ORDER BY avg_attendance DESC
+-- ORDER BY avg_attendance ASC
 LIMIT 5
 	
 
